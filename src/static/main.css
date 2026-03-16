@@ -13,43 +13,53 @@
 .cm-editor .cm-gutters,
 .cm-editor .cm-lineNumbers,
 .cm-editor .cm-content {
-  font-family: JetBrainsMono;
+  font-family: JetBrainsMono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   outline: none;
-  border: none;
-  background: none;
-  margin: 0;
-  padding: 0;
 }
 
-#editor {
-  overflow-y: auto;
+/* CodeMirror Override */
+.cm-editor {
+  background: transparent !important;
+  height: 100%;
 }
 
-#editor,
-.cm-editor,
-.cm-editor .cm-scroller {
-  flex-grow: 1;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+.cm-scroller {
+  scrollbar-width: thin;
 }
 
-.cm-editor.cm-focused {
-  outline: none;
+.cm-editor .cm-gutters {
+  background: transparent !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cm-editor .cm-gutters { border-right: 1px solid rgba(255, 255, 255, 0.05); }
+}
+.dark .cm-editor .cm-gutters {
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .cm-editor .cm-lineNumbers .cm-gutterElement {
-  padding: 0 0 0 0.5rem;
-  min-width: 0;
-  color: rgba(0, 32, 64, 0.3);
+  color: rgba(0, 0, 0, 0.3);
+  padding: 0 8px 0 12px;
 }
 
-.cm-editor .cm-lineNumbers .cm-activeLineGutter {
-  color: rgba(0, 32, 64, 0.7);
-  background-color: rgba(0, 32, 64, 0.07);
+@media (prefers-color-scheme: dark) {
+  .cm-editor .cm-lineNumbers .cm-gutterElement { color: rgba(255, 255, 255, 0.3); }
+}
+.dark .cm-editor .cm-lineNumbers .cm-gutterElement {
+  color: rgba(255, 255, 255, 0.3);
 }
 
-.cm-editor .cm-content .cm-activeLine {
-  background-color: rgba(0, 32, 64, 0.07);
+.cm-editor .cm-activeLine, .cm-editor .cm-activeLineGutter {
+  background-color: rgba(14, 165, 233, 0.05) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cm-editor .cm-content { color: #e2e8f0; }
+}
+.dark .cm-editor .cm-content {
+  color: #e2e8f0;
 }
 
 .cm-editor .cm-content .cm-line {
@@ -57,93 +67,21 @@
 }
 
 .cm-editor .cm-content {
-  align-self: stretch;
-  padding: 1rem 0 50vh 0;
+  padding: 1.5rem 0;
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+/* Custom classes for JS handled states */
+#copy.success {
+  background-color: #22c55e !important;
+  color: white !important;
 }
 
-body:not([data-show]) {
-  visibility: hidden;
-}
-
-header {
-  position: relative;
-  z-index: 1;
-}
-
-header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 100%;
-  width: 100%;
-  height: 0.5rem;
-  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.025), rgba(0, 0, 0, 0));
-  opacity: 0;
-  transition: 0.5s;
-  pointer-events: none;
-}
-
-.scrolled header::after {
-  opacity: 1;
-}
-
-h1 {
-  padding: 0.5rem;
-  color: rgb(0, 64, 128);
-  font-size: 2rem;
-  text-align: center;
-}
-
-#resultRow {
-  display: flex;
-  background-color: rgba(0, 32, 64, 0.1);
-  overflow: hidden;
-}
-
-#result {
-  width: 0;
-  flex: 1;
-  padding: 0.5rem;
-  font-size: 0.875rem;
-}
-
-#resultRow button {
-  width: 5rem;
-  font-size: 1rem;
-  font-weight: bold;
-  padding: 0.5rem;
-  background-color: rgba(0, 32, 64, 0.17);
-  transition: 0.5s cubic-bezier(0, 0, 0, 1);
-  transition-property: width, background-color;
-}
-
-#resultRow button:active {
-  background-color: rgba(0, 32, 64, 0.07);
-}
-
-#copy.pending,
-#copy.success,
 #copy.error {
-  background-color: rgba(0, 32, 64, 0.07);
-  width: 7rem;
+  background-color: #ef4444 !important;
+  color: white !important;
 }
 
-#copy.pending::after {
-  content: " ✔";
-}
-
-#copy.success::after {
-  content: " ✔";
-  color: green;
-}
-
-#copy.error::after {
-  content: " ✘";
-  color: red;
+#copy.pending {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }

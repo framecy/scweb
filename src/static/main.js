@@ -8,60 +8,96 @@ const el_result = document.querySelector('#result')
 const el_copy = document.querySelector('#copy')
 const el_clash = document.querySelector('#clash')
 const el_editor = document.querySelector('#editor')
+let editorView, rulesEditorView
+const initialContent = location.hash.slice(1) || ''
+const initialRules = localStorage.getItem('remote_rules') || ''
 
-const url = new URL(
-  location.hash.slice(1).replace(
-    /^(https?:\/*)?(.*)/i,
-    (_, $1, $2) => ($1 || 'https://') + ($2 || 'arx.cc'),
-  ),
-)
+function getAPIBase() {
+  return new URL(`http://${location.hostname}:8000/`)
+}
 
-el_result.value = url.href
+// Initial result URL
+el_result.value = getAPIBase().href
+
+const el_dns_toggle = document.querySelector('#dnsToggle')
+const el_tun_toggle = document.querySelector('#tunToggle')
 
 let timeout_id_update
+// Rename to avoid confusion and use as a stable reference
 
-const editor = createEditor({
+function updateURL(view) {
+  const contentInput = (editorView ? editorView.state.doc.toString() : initialContent).trim()
+  const rulesInput = (rulesEditorView ? rulesEditorView.state.doc.toString() : initialRules).trim()
+  localStorage.setItem('remote_rules', rulesInput)
+
+  if (!contentInput) {
+    el_result.value = ''
+    return
+  }
+
+  // Restore robust processing of content sources
+  const sources = contentInput.split(/\s*\n\s*/g).filter(Boolean)
+  let formattedContent = ''
+  
+  if (sources.length === 1 && /^(?:https?|data):/i.test(sources[0])) {
+    // Single plain URL - keep it simple
+    formattedContent = sources[0]
+  } else {
+    // Multi-line or complex format - join and escape
+    formattedContent = sources.join('|')
+      .replaceAll('%', '%25')
+      .replaceAll('\\', '%5C')
+      .replace(/^(https?|data):/i, '$1%3A')
+  }
+
+  const base = getAPIBase()
+  const searchParams = base.searchParams
+  if (!el_dns_toggle.checked) searchParams.set('dns', 'false')
+  if (!el_tun_toggle.checked) searchParams.set('tun', 'false')
+  if (rulesInput) searchParams.set('rules', rulesInput)
+
+  const args = searchParams.toString()
+  let resultURL = base.origin
+  if (args) {
+    resultURL += '/!' + args
+  }
+  resultURL += '/' + formattedContent
+  
+  el_result.value = resultURL
+}
+
+el_dns_toggle.addEventListener('change', () => updateURL())
+el_tun_toggle.addEventListener('change', () => updateURL())
+
+editorView = createEditor({
   hint: 'http/s 订阅链接、除 http/s 代理的 uri、用 base64/base64url 编码的订阅内容或 Data URL，一行一个。' +
     '获取零节点订阅用 empty，可用于去广告',
   parent: el_editor,
-  onUpdate({ docChanged, state }) {
-    if (!docChanged) return
+  onUpdate(update) {
+    if (!update.docChanged) return
     clearTimeout(timeout_id_update)
-    timeout_id_update = setTimeout(() => {
-      let from = state.doc.toString().trim()
-      if (from === 'empty') {
-        url.pathname = '/empty'
-        url.search = ''
-        el_result.value = url.href
-        return
-      }
-      from = from.replaceAll('|', '%7C')
-        .split(/\s*\n\s*/g)
-        .filter((x) =>
-          /^(?:https?|data):|^[a-z][a-z0-9.+-]*:\/\/./i.test(x) ||
-          (x.length % 4 !== 1 && /^[-_+/A-Za-z0-9]*={0,2}$/.test(x))
-        )
-      if (from.length === 1 && /^(?:https?|data):/i.test(from[0])) {
-        try {
-          from = new URL(from[0])
-          url.pathname = '/' + (from.protocol === 'data:' ? 'data:' : from.origin) + from.pathname
-          url.search = from.search
-        } catch {
-          // pass
-        }
-      } else {
-        url.pathname = '/' + from.join('|')
-          .replaceAll('%', '%25')
-          .replaceAll('\\', '%5C')
-          .replace(/^(https?|data):/i, '$1%3A')
-        url.search = ''
-      }
-      el_result.value = url.href
-    }, 100)
+    timeout_id_update = setTimeout(() => updateURL(update.view), 100)
   },
 })
 
-editor.focus()
+const el_rules = document.querySelector('#rules-editor')
+if (el_rules) {
+  rulesEditorView = createEditor({
+    hint: '远程规则链接 (MRS/YAML)，每行一个。自动绑定到“起飞”分组。',
+    parent: el_rules,
+    initialContent: initialRules,
+    onUpdate(update) {
+      if (!update.docChanged) return
+      clearTimeout(timeout_id_update)
+      timeout_id_update = setTimeout(() => updateURL(update.view), 100)
+    },
+  })
+}
+
+// Initial update to handle initialContent/initialRules
+setTimeout(() => updateURL(), 200)
+
+editorView.focus()
 
 let timeout_id_remove_success_and_error
 
@@ -88,7 +124,8 @@ el_copy.addEventListener('click', async () => {
 })
 
 function getName() {
-  const input = editor.state.doc.toString()
+  if (!editorView) return ''
+  const input = editorView.state.doc.toString()
   let m
   if ((m = input.match(/^\s*https?:\/\/raw\.githubusercontent\.com\/+([^/\n]+)(?:\/+[^/\n]+){2,}\/+([^/\n]+)\s*$/))) {
     return m[1] === m[2] ? m[1] : m[1] + ' - ' + decodeURIComponent(m[2])
