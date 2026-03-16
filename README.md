@@ -1,5 +1,7 @@
 # ACL4SSR Mannix 订阅转换极速版 Web 前端
 
+![Preview](./scweb.png)
+
 后端：[ACL4SSR Mannix 订阅转换极速版](https://github.com/zsokami/cvt)
 
 指定后端地址用 `#...`
